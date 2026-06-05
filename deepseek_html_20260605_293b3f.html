@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Healing Earth Project · 3D Seed Pellet Models · Creative Form Factors</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', 'Calibri', 'Roboto', sans-serif;
+        }
+        /* UI overlay - corporate style */
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 30, 35, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            padding: 16px 24px;
+            color: white;
+            pointer-events: none;
+            z-index: 10;
+            border-left: 5px solid #7faa6b;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            max-width: 320px;
+        }
+        .info-panel h1 {
+            margin: 0 0 4px;
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+        .info-panel p {
+            margin: 0;
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        .controls-note {
+            position: absolute;
+            bottom: 16px;
+            left: 20px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 0.7rem;
+            color: #ccc;
+            pointer-events: none;
+            font-family: monospace;
+            z-index: 10;
+        }
+        /* selector cards - like a product gallery */
+        .selector {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            left: 24px;
+            background: rgba(20, 20, 25, 0.85);
+            backdrop-filter: blur(16px);
+            border-radius: 28px;
+            padding: 16px 20px;
+            z-index: 20;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            pointer-events: auto;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .model-btn {
+            background: rgba(30,30,35,0.9);
+            border: 1px solid #5a7c50;
+            color: #e0e0e0;
+            padding: 8px 18px;
+            border-radius: 60px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-family: inherit;
+            backdrop-filter: blur(4px);
+        }
+        .model-btn:hover {
+            background: #7faa6b;
+            color: #1e2a1a;
+            border-color: #7faa6b;
+            transform: scale(1.02);
+        }
+        .model-btn.active {
+            background: #7faa6b;
+            color: #1e2a1a;
+            border-color: #cfe2c3;
+            box-shadow: 0 0 12px rgba(127,170,107,0.5);
+        }
+        .title-badge {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            padding: 8px 18px;
+            border-radius: 40px;
+            color: #f2f2f2;
+            font-size: 0.8rem;
+            font-weight: 500;
+            pointer-events: none;
+            z-index: 10;
+            letter-spacing: 0.5px;
+            border-right: 3px solid #7faa6b;
+        }
+        @media (max-width: 700px) {
+            .model-btn { padding: 5px 12px; font-size: 0.7rem; }
+            .selector { gap: 8px; padding: 12px; bottom: 12px; left: 12px; right: 12px; }
+            .info-panel { top: 12px; left: 12px; padding: 10px 16px; max-width: 260px; }
+            .info-panel h1 { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="info-panel">
+        <h1>🌱 Creative seed pellet forms</h1>
+        <p>Bee-centric · petrochemical-free · predator-safe · 3D models</p>
+        <p style="margin-top:6px; font-size:0.7rem;">Healing Earth Project – Argo‑Saronic Hub</p>
+    </div>
+    <div class="title-badge" id="modelNameDisplay">Bee Hex</div>
+    <div class="controls-note">🖱️ Drag to rotate · Right-click pan · Scroll zoom</div>
+    <div class="selector" id="buttonContainer"></div>
+
+    <!-- Import Three.js core and add-ons -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // --- setup scene
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x111217);
+        scene.fog = new THREE.FogExp2(0x111217, 0.008);
+        
+        // camera
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(2.5, 1.8, 3.5);
+        camera.lookAt(0, 0, 0);
+        
+        // renderers
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
+        
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+        
+        // controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.rotateSpeed = 1.2;
+        controls.zoomSpeed = 1.2;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+        controls.panSpeed = 0.8;
+        
+        // lighting
+        // ambient
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        // main directional light
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(2, 3, 2);
+        dirLight.castShadow = true;
+        dirLight.receiveShadow = false;
+        scene.add(dirLight);
+        // fill light from below
+        const fillLight = new THREE.PointLight(0x6a8e5c, 0.4);
+        fillLight.position.set(0, -1, 0);
+        scene.add(fillLight);
+        // back rim light
+        const rimLight = new THREE.PointLight(0xffaa66, 0.5);
+        rimLight.position.set(-1, 1.5, -2);
+        scene.add(rimLight);
+        // warm key light
+        const warmLight = new THREE.PointLight(0xe0b05a, 0.6);
+        warmLight.position.set(1.2, 1.8, 1.5);
+        scene.add(warmLight);
+        
+        // subtle grid helper
+        const gridHelper = new THREE.GridHelper(5, 20, 0x88aa77, 0x446644);
+        gridHelper.position.y = -0.8;
+        gridHelper.material.transparent = true;
+        gridHelper.material.opacity = 0.35;
+        scene.add(gridHelper);
+        
+        // floating particles for ambiance
+        const particleGeo = new THREE.BufferGeometry();
+        const particleCount = 800;
+        const particlePositions = new Float32Array(particleCount * 3);
+        for (let i = 0; i < particleCount; i++) {
+            particlePositions[i*3] = (Math.random() - 0.5) * 12;
+            particlePositions[i*3+1] = (Math.random() - 0.5) * 4;
+            particlePositions[i*3+2] = (Math.random() - 0.5) * 8 - 2;
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+        const particleMat = new THREE.PointsMaterial({ color: 0xaacf99, size: 0.03, transparent: true, opacity: 0.4 });
+        const particles = new THREE.Points(particleGeo, particleMat);
+        scene.add(particles);
+        
+        // --- current object
+        let currentModel = null;
+        
+        // --- helper: CSS2D label
+        function makeLabel(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            div.style.color = '#f0f0e0';
+            div.style.fontSize = '14px';
+            div.style.fontWeight = '500';
+            div.style.textShadow = '1px 1px 0px #1a2a18';
+            div.style.backgroundColor = 'rgba(30,40,25,0.7)';
+            div.style.padding = '4px 14px';
+            div.style.borderRadius = '40px';
+            div.style.borderLeft = '3px solid #7faa6b';
+            div.style.fontFamily = 'Segoe UI, sans-serif';
+            div.style.backdropFilter = 'blur(8px)';
+            div.style.pointerEvents = 'none';
+            return new CSS2DObject(div);
+        }
+        
+        // --- creative geometries (3d interpretations)
+        const geometries = {
+            // 1. Bee Hex: hexagonal pillow with dimples
+            beeHex: () => {
+                const group = new THREE.Group();
+                const hexShape = new THREE.Shape();
+                const radius = 0.65;
+                for (let i = 0; i < 6; i++) {
+                    const angle = (i * 60) * Math.PI / 180;
+                    const x = Math.cos(angle) * radius;
+                    const y = Math.sin(angle) * radius;
+                    if (i === 0) hexShape.moveTo(x, y);
+                    else hexShape.lineTo(x, y);
+                }
+                hexShape.closePath();
+                const extrudeSettings = { steps: 1, depth: 0.28, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.04, bevelSegments: 3 };
+                const geometry = new THREE.ExtrudeGeometry(hexShape, extrudeSettings);
+                geometry.center();
+                geometry.computeVertexNormals();
+                const material = new THREE.MeshStandardMaterial({ color: 0xe7b84a, roughness: 0.4, metalness: 0.1, emissive: 0x442200 });
+                const hexMesh = new THREE.Mesh(geometry, material);
+                hexMesh.castShadow = true;
+                hexMesh.receiveShadow = false;
+                group.add(hexMesh);
+                // add dimples (small spheres)
+                const dimpleMat = new THREE.MeshStandardMaterial({ color: 0xc9942a, emissive: 0x331c00 });
+                const positions = [[0.4,0.2,0.2], [-0.3,0.35,0.2], [0.1,-0.4,0.2], [0.5,-0.1,0.2], [-0.5,0.0,0.2]];
+                positions.forEach(pos => {
+                    const sphere = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), dimpleMat);
+                    sphere.position.set(pos[0], pos[1], 0.23);
+                    group.add(sphere);
+                });
+                return group;
+            },
+            // 2. Starfall: five-point star extruded
+            starfall: () => {
+                const shape = new THREE.Shape();
+                const outerR = 0.82;
+                const innerR = 0.38;
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i * 36) * Math.PI / 180;
+                    const r = (i % 2 === 0) ? outerR : innerR;
+                    const x = Math.cos(angle) * r;
+                    const y = Math.sin(angle) * r;
+                    if (i === 0) shape.moveTo(x, y);
+                    else shape.lineTo(x, y);
+                }
+                shape.closePath();
+                const geo = new THREE.ExtrudeGeometry(shape, { depth: 0.32, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.05 });
+                geo.center();
+                const mat = new THREE.MeshStandardMaterial({ color: 0xdfb87a, roughness: 0.5, metalness: 0.2 });
+                const star = new THREE.Mesh(geo, mat);
+                star.castShadow = true;
+                return star;
+            },
+            // 3. Pollen Puck: flat cylinder with rough bumps
+            pollenPuck: () => {
+                const group = new THREE.Group();
+                const base = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.22, 32), new THREE.MeshStandardMaterial({ color: 0xc7a05c, roughness: 0.7 }));
+                base.castShadow = true;
+                group.add(base);
+                const bumpMat = new THREE.MeshStandardMaterial({ color: 0xa87b3a });
+                for (let i = 0; i < 55; i++) {
+                    const bump = new THREE.Mesh(new THREE.SphereGeometry(0.055, 6), bumpMat);
+                    const theta = Math.random() * Math.PI * 2;
+                    const r = 0.7 * Math.sqrt(Math.random());
+                    bump.position.x = Math.cos(theta) * r;
+                    bump.position.z = Math.sin(theta) * r;
+                    bump.position.y = 0.13;
+                    group.add(bump);
+                }
+                return group;
+            },
+            // 4. Acorn Globe: acorn-like with cap
+            acornGlobe: () => {
+                const group = new THREE.Group();
+                const body = new THREE.Mesh(new THREE.SphereGeometry(0.55, 48, 48), new THREE.MeshStandardMaterial({ color: 0xbd8a4a, roughness: 0.3 }));
+                body.scale.set(1, 1.1, 1);
+                body.castShadow = true;
+                group.add(body);
+                const capMat = new THREE.MeshStandardMaterial({ color: 0x7a5a2e, roughness: 0.8 });
+                const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.7, 0.2, 12), capMat);
+                cap.position.y = 0.58;
+                cap.castShadow = true;
+                group.add(cap);
+                const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 0.18, 6), capMat);
+                stem.position.y = 0.72;
+                group.add(stem);
+                return group;
+            },
+            // 5. Honey Drop: teardrop (lathe)
+            honeyDrop: () => {
+                const points = [];
+                for (let i = 0; i <= 20; i++) {
+                    const t = i / 20;
+                    const y = -0.7 + t * 1.4;
+                    const r = 0.55 * Math.sin(t * Math.PI) * (1 - t * 0.4);
+                    points.push(new THREE.Vector2(r, y));
+                }
+                const geo = new THREE.LatheGeometry(points, 32);
+                const mat = new THREE.MeshStandardMaterial({ color: 0xeaab3a, emissive: 0x442200, roughness: 0.25 });
+                const drop = new THREE.Mesh(geo, mat);
+                drop.castShadow = true;
+                return drop;
+            },
+            // 6. Seed Scroll: rolled cylinder
+            seedScroll: () => {
+                const group = new THREE.Group();
+                const cylinder = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.1, 24), new THREE.MeshStandardMaterial({ color: 0xc69752, roughness: 0.6 }));
+                cylinder.castShadow = true;
+                group.add(cylinder);
+                const spiralMat = new THREE.MeshStandardMaterial({ color: 0xac8140 });
+                for (let i = -0.5; i <= 0.5; i+=0.25) {
+                    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.48, 0.05, 16, 60), spiralMat);
+                    ring.rotation.x = Math.PI / 2;
+                    ring.position.y = i;
+                    group.add(ring);
+                }
+                return group;
+            },
+            // 7. Pebble Pod: distorted icosahedron
+            pebblePod: () => {
+                const geo = new THREE.IcosahedronGeometry(0.7, 0);
+                const positions = geo.attributes.position.array;
+                for (let i = 0; i < positions.length; i+=3) {
+                    positions[i] += (Math.random() - 0.5) * 0.18;
+                    positions[i+1] += (Math.random() - 0.5) * 0.18;
+                    positions[i+2] += (Math.random() - 0.5) * 0.18;
+                }
+                geo.computeVertexNormals();
+                const mat = new THREE.MeshStandardMaterial({ color: 0xb1956b, roughness: 0.8, flatShading: false });
+                const rock = new THREE.Mesh(geo, mat);
+                rock.castShadow = true;
+                return rock;
+            },
+            // 8. Pollinator Pyramid: square pyramid
+            pollinatorPyramid: () => {
+                const geo = new THREE.CylinderGeometry(0, 0.85, 0.85, 4);
+                const mat = new THREE.MeshStandardMaterial({ color: 0xdba345, roughness: 0.4 });
+                const pyramid = new THREE.Mesh(geo, mat);
+                pyramid.castShadow = true;
+                return pyramid;
+            },
+            // 9. Hive Disc: thin cylinder with hex pattern texture
+            hiveDisc: () => {
+                const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.12, 48), new THREE.MeshStandardMaterial({ color: 0xe5b855, roughness: 0.3, metalness: 0.1 }));
+                disc.castShadow = true;
+                return disc;
+            },
+            // 10. Wildflower Crown: torus with floral ornaments
+            wildflowerCrown: () => {
+                const group = new THREE.Group();
+                const ring = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.1, 32, 80), new THREE.MeshStandardMaterial({ color: 0xdfb25c, roughness: 0.5 }));
+                ring.rotation.x = Math.PI / 2;
+                group.add(ring);
+                const flowerMat = new THREE.MeshStandardMaterial({ color: 0xefbc6e });
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2;
+                    const petal = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8), flowerMat);
+                    petal.position.set(Math.cos(angle) * 0.88, 0.12, Math.sin(angle) * 0.88);
+                    group.add(petal);
+                }
+                return group;
+            }
+        };
+        
+        // model metadata
+        const models = [
+            { id: 'beeHex', name: 'Bee Hex', desc: 'Honeycomb pillow · dimpled', creator: () => geometries.beeHex() },
+            { id: 'starfall', name: 'Starfall Pellet', desc: '5‑point star · fragments on hydration', creator: () => geometries.starfall() },
+            { id: 'pollenPuck', name: 'Pollen Puck', desc: 'Textured flat puck · biochar coating', creator: () => geometries.pollenPuck() },
+            { id: 'acornGlobe', name: 'Acorn Globe', desc: 'Water‑funnel cap · oak restoration', creator: () => geometries.acornGlobe() },
+            { id: 'honeyDrop', name: 'Honey Drop', desc: 'Teardrop · sheds excess rain', creator: () => geometries.honeyDrop() },
+            { id: 'seedScroll', name: 'Seed Scroll', desc: 'Rolled spiral · sequential germination', creator: () => geometries.seedScroll() },
+            { id: 'pebblePod', name: 'Pebble Pod', desc: 'Camouflage · irregular stone shape', creator: () => geometries.pebblePod() },
+            { id: 'pollinatorPyramid', name: 'Pollinator Pyramid', desc: '4 corners · micro‑sites', creator: () => geometries.pollinatorPyramid() },
+            { id: 'hiveDisc', name: 'Hive Disc', desc: 'Ultrafast dissolution (<2 min)', creator: () => geometries.hiveDisc() },
+            { id: 'wildflowerCrown', name: 'Wildflower Crown', desc: 'Ring · staggered emergence', creator: () => geometries.wildflowerCrown() }
+        ];
+        
+        // add CSS2D labels per model variant
+        function switchModel(index) {
+            if (currentModel) scene.remove(currentModel);
+            const modelDef = models[index];
+            const modelObj = modelDef.creator();
+            modelObj.userData = { name: modelDef.name };
+            modelObj.position.y = 0;
+            // center the group
+            modelObj.position.x = 0;
+            modelObj.position.z = 0;
+            scene.add(modelObj);
+            currentModel = modelObj;
+            
+            // update title badge
+            const titleDiv = document.getElementById('modelNameDisplay');
+            titleDiv.innerHTML = `${modelDef.name} · ${modelDef.desc}`;
+            
+            // remove old label if exists
+            if (window.currentLabel) scene.remove(window.currentLabel);
+            const label = makeLabel(modelDef.name);
+            label.position.set(0, -0.85, 0);
+            scene.add(label);
+            window.currentLabel = label;
+        }
+        
+        // build UI buttons
+        const container = document.getElementById('buttonContainer');
+        models.forEach((model, idx) => {
+            const btn = document.createElement('button');
+            btn.textContent = model.name;
+            btn.classList.add('model-btn');
+            btn.addEventListener('click', () => {
+                switchModel(idx);
+                document.querySelectorAll('.model-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+            container.appendChild(btn);
+        });
+        
+        // default active first
+        switchModel(0);
+        document.querySelector('.model-btn').classList.add('active');
+        
+        // floating animation helper
+        let time = 0;
+        
+        // animate rotation + subtle floating
+        function animate() {
+            requestAnimationFrame(animate);
+            time += 0.012;
+            
+            if (currentModel) {
+                // gentle floating motion
+                currentModel.position.y = Math.sin(time) * 0.03;
+                // smooth rotation based on mouse interaction? no, but add micro-rotation for life
+                if (!controls.autoRotate) {
+                    // slight auto-spin only if user not interacting? we skip, but keep orientation
+                }
+            }
+            
+            particles.rotation.y += 0.001;
+            particles.rotation.x = Math.sin(time * 0.2) * 0.1;
+            
+            controls.update(); // update orbit
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+        
+        animate();
+        
+        // handle resize
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html>
